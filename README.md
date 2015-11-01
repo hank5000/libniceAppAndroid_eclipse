@@ -6,8 +6,11 @@ This App is using for develop jni of libnice.
 Development step :
 
 Step1. Sync project libnice4android and libgstreamer4android.
+
 Step2. Set your ndk path and libniceAppAndroid path in libnice4android.
+
 Step3. Using Eclipse to open this project.
+
 
 
 How to use this App:
