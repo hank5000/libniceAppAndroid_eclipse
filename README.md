@@ -7,7 +7,7 @@ Development step :
 
 Step1. Sync project libnice4android and libgstreamer4android.
 
-Step2. Set your ndk path and libniceAppAndroid path in libnice4android.
+Step2. Set your ndk path and libniceAppAndroid path at build4android.sh which is in project libnice4android.
 
 Step3. Using Eclipse to open this project.
 
