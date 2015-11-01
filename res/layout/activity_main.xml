@@ -1,0 +1,71 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" 
+    android:orientation="horizontal">
+
+ <LinearLayout
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:orientation="vertical">
+ <Button 
+     android:layout_width="100dp"
+     android:layout_height="70dp"
+     android:text="Init libnice"
+     android:id="@+id/initBtn"
+     />
+ 
+ <Button 
+     android:layout_width="100dp"
+     android:layout_height="70dp"
+     android:text="getRemoteSdp"
+     android:id="@+id/getBtn"
+     />
+
+  <Button 
+     android:layout_width="100dp"
+     android:layout_height="70dp"
+     android:text="SetRemoteSdp"
+     android:id="@+id/setBtn"
+     />
+ 
+ <Button 
+     android:layout_width="100dp"
+     android:layout_height="70dp"
+     android:text="SendToRemote"
+     android:id="@+id/sendBtn"
+     />
+ </LinearLayout>
+ 
+  <LinearLayout
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:orientation="vertical">
+  <LinearLayout
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:orientation="horizontal">
+ 
+ <ImageView
+     android:layout_width="300dp"
+     android:layout_height="300dp"
+     android:id="@+id/QRCodeView"/>
+ 
+ <TextView
+     android:layout_width="wrap_content"
+     android:layout_height="300dp"
+     android:id="@+id/textView2"/>
+ 
+ 
+ </LinearLayout>>
+ 
+ <TextView
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:id="@+id/textView1"/>
+ 
+ </LinearLayout>>
+    
+</LinearLayout>
+
