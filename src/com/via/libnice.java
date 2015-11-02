@@ -22,7 +22,6 @@ public class libnice {
 		act = a;
 	}
 	
-	
 	private static int a = 0;
 	Thread mainLoopThread = new Thread(new Runnable(){
 		@Override
@@ -66,6 +65,16 @@ public class libnice {
 	public static void jniCallBackMsgStatic(byte[] msg) {
 		Log.d("libnice-cb-static", new String(msg));
 		act.AddTextToChat("From:"+new String(msg));
+	}
+	
+	public void registerObserver(libnice.Observer obs) {
+		this.registerObserverNative(obs);
+	}
+	
+	private native void registerObserverNative(libnice.Observer obs);
+	
+	public interface Observer{
+		void obCallback(byte[] msg);
 	}
 	
 }

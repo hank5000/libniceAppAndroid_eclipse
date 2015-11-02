@@ -70,6 +70,7 @@ public class MainActivity extends Activity {
 		public void onClick(View v) {
 			nice.libInit();
 			sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
+			nice.registerObserver(new obser());
 			//TODO: generate an QR code and render to imageView.
 
 			
@@ -245,5 +246,14 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	
+	public class obser implements libnice.Observer {
+
+		@Override
+		public void obCallback(byte[] msg) {
+			// TODO Auto-generated method stub
+			Log.d("obser","haha:"+new String(msg));
+		}
+	}
 
 }
