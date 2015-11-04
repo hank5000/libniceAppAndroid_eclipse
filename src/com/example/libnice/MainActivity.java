@@ -68,21 +68,72 @@ public class MainActivity extends Activity {
 
 		@Override
 		public void onClick(View v) {
-			nice.libInit();
-			sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
-			nice.registerObserver(new obser());
-			//TODO: generate an QR code and render to imageView.
+			nice.init();
+			nice.createAgent();
+			nice.setStunAddress(STUN_IP, STUN_PORT);
+			nice.setControllingMode(1);
+			nice.addStream("HankWu1",2);
+			nice.registerStateObserver(new libnice.StateObserver() {
+				
+				@Override
+				public void cbComponentStateChanged(int stream_id, int component_id,
+						int state) {
+					Log.d("cbComponentStateChanged","Stream["+stream_id+"]["+component_id+"]:"+libnice.StateObserver.STATE_TABLE[state]);
+					
+					if(libnice.StateObserver.STATE_TABLE[state].equalsIgnoreCase("ready")) {
+						final int compId = component_id;
+						
+						Thread a = new Thread(new Runnable() {
 
+							@Override
+							public void run() {
+								int i = 0;
+								while(true) {
+									nice.sendMsg("Test String Coming ["+compId+"]("+i+")",compId);
+									Log.d("send","send String Coming ["+compId+"]("+i+")");
+									i++;
+									try {
+										Thread.sleep(30);
+									} catch(InterruptedException e) {
+										
+									}
+								}
+							}
+							
+						});
+						//a.start();
+
+					}
+				}
+				
+				@Override
+				public void cbCandidateGatheringDone(int stream_id) {
+					// TODO Auto-generated method stub
+					Log.d("cbCandidateGatheringDone","Candidate Gathering Done Stream "+stream_id);
+				}
+			});
 			
-			instance.runOnUiThread(new Runnable() {
+			sdp = nice.getLocalSdp();
+			
+			//sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
+			
+			nice.registerObserver(new libnice.Observer() {
+				@Override
+				public void obCallback(byte[] msg) {
+					// TODO Auto-generated method stub
+					AddTextToChat("from:"+new String(msg));
+					
+				}
+			}, 1);
+			
 
+			instance.runOnUiThread(new Runnable() {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
 					Bitmap bmp = encodeToQrCode(sdp,420,420);
 					qrView.setImageBitmap(bmp);
 				}
-				
 			});
 			
 
@@ -155,7 +206,7 @@ public class MainActivity extends Activity {
 			    // do something when the button is clicked
 			    public void onClick(DialogInterface arg0, int arg1) {
 			    	String sendmsg = editText.getText().toString();
-					nice.jsendData(sendmsg);
+					nice.jsendData(sendmsg,1);
 					AddTextToChat("Me:"+sendmsg);
 			    }
 			    });
@@ -223,7 +274,7 @@ public class MainActivity extends Activity {
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
-			nice.libInit();
+			nice.init();
 			sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
 
 			return true;
@@ -248,11 +299,11 @@ public class MainActivity extends Activity {
 
 	
 	public class obser implements libnice.Observer {
-
 		@Override
 		public void obCallback(byte[] msg) {
 			// TODO Auto-generated method stub
 			Log.d("obser","haha:"+new String(msg));
+			AddTextToChat("from:"+new String(msg));
 		}
 	}
 
