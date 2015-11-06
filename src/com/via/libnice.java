@@ -19,10 +19,21 @@ public class libnice {
 	private native int setRemoteSdpNative(String jremoteSdp,long Size);
 	private native int sendMsgNative(String data,int compId);
 	private native int sendDataNative(byte[] data,int compId);
-	private native String createNiceAgentAndGetSdp(String stun_ip,int stun_port);
+	private native int createReceiveProcessNative(libnice.ReceiveCallback cb_obj,int sid,int cid);
+	
+	public void createReceiveProcess(libnice.ReceiveCallback cb_obj, int sid,int cid) {
+		createReceiveProcessNative(cb_obj,sid,cid);
+	}
+	
+	
+	//private native String createNiceAgentAndGetSdp(String stun_ip,int stun_port);
+	
+	
+	
 	
 	private native int mainLoopStart();
 	private native int mainTest();
+
 	private native void registerObserverNative(libnice.Observer obs,int compId);
 	private native void registerStateObserverNative(libnice.StateObserver obs);
 	
@@ -73,9 +84,9 @@ public class libnice {
 		return getLocalSdpNative();
 	}
 	
-	public String jcreateNiceAgentAndGetSdp(String stun_ip,int stun_port) {
-		return createNiceAgentAndGetSdp(stun_ip,stun_port);
-	}
+//	public String jcreateNiceAgentAndGetSdp(String stun_ip,int stun_port) {
+//		return createNiceAgentAndGetSdp(stun_ip,stun_port);
+//	}
 	
 	public void jsetRemoteSdp(String remoteSdp) {
 		setRemoteSdpNative(remoteSdp,remoteSdp.length());
@@ -124,4 +135,7 @@ public class libnice {
 		void cbComponentStateChanged(int stream_id,int component_id,int state);
 	}
 	
+	public interface ReceiveCallback {
+		void onMessage(byte[] buf,int use_len);
+	}
 }

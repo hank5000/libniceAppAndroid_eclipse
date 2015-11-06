@@ -2,6 +2,7 @@ package com.example.libnice;
 
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.util.Hashtable;
 
 import android.app.Activity;
@@ -27,6 +28,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.via.libnice;
 import com.google.zxing.*;
@@ -63,6 +65,7 @@ public class MainActivity extends Activity {
 	    }
 	    return bmp;
 	}
+	int preA = -1;
 	
 	OnClickListener initListener = new OnClickListener(){
 
@@ -71,8 +74,8 @@ public class MainActivity extends Activity {
 			nice.init();
 			nice.createAgent();
 			nice.setStunAddress(STUN_IP, STUN_PORT);
-			nice.setControllingMode(1);
-			nice.addStream("HankWu1",2);
+			nice.setControllingMode(0);
+			nice.addStream("HankWu1",1);
 			nice.registerStateObserver(new libnice.StateObserver() {
 				
 				@Override
@@ -82,27 +85,15 @@ public class MainActivity extends Activity {
 					
 					if(libnice.StateObserver.STATE_TABLE[state].equalsIgnoreCase("ready")) {
 						final int compId = component_id;
-						
-						Thread a = new Thread(new Runnable() {
+						instance.runOnUiThread(new Runnable(){
 
 							@Override
 							public void run() {
-								int i = 0;
-								while(true) {
-									nice.sendMsg("Test String Coming ["+compId+"]("+i+")",compId);
-									Log.d("send","send String Coming ["+compId+"]("+i+")");
-									i++;
-									try {
-										Thread.sleep(30);
-									} catch(InterruptedException e) {
-										
-									}
-								}
+								Toast.makeText(instance, "comp id:"+compId+" is ready", Toast.LENGTH_LONG);
 							}
 							
 						});
-						//a.start();
-
+						
 					}
 				}
 				
@@ -115,18 +106,23 @@ public class MainActivity extends Activity {
 			
 			sdp = nice.getLocalSdp();
 			
-			//sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
-			
 			nice.registerObserver(new libnice.Observer() {
 				@Override
 				public void obCallback(byte[] msg) {
 					// TODO Auto-generated method stub
-					AddTextToChat("from:"+new String(msg));
-					
+					//AddTextToChat("from:"+new String(msg));
+					String tmp = new String(msg);
+					if(tmp.startsWith("Msg")) {
+						LOGD(tmp);
+						AddTextToChat("Msg : "+ tmp);
+					} else if(tmp.startsWith("Test")) {
+						LOGD(tmp);
+						AddTextToChat("Test Msg:"+tmp);
+					}
+
 				}
 			}, 1);
 			
-
 			instance.runOnUiThread(new Runnable() {
 				@Override
 				public void run() {
@@ -177,6 +173,7 @@ public class MainActivity extends Activity {
 			    // do something when the button is clicked
 			    public void onClick(DialogInterface arg0, int arg1) {
 					nice.jsetRemoteSdp(remoteSdp);	
+
 			    }
 			    });
 			   editDialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
@@ -210,6 +207,35 @@ public class MainActivity extends Activity {
 					AddTextToChat("Me:"+sendmsg);
 			    }
 			    });
+			   editDialog.setNeutralButton("Send it Sequecialy", new DialogInterface.OnClickListener() {
+				
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					// TODO Auto-generated method stub
+					Thread a = new Thread(new Runnable() {
+						@Override
+						public void run() {
+							int i = 0;
+							byte[] b = new byte[1024];
+							while(true) {
+								
+								nice.sendMsg(""+i+":Test String Coming ["+1+"]"+new String(b),1);
+								Log.d("send","send String Coming ["+1+"]("+i+")");
+								i++;
+								if(i%25==0)
+								try {
+									Thread.sleep(30);
+								} catch(InterruptedException e) {
+									
+								}
+							}
+						}
+					});
+					a.start();
+					
+				}
+			});
+			   
 			   editDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			          // do something when the button is clicked
 			    public void onClick(DialogInterface arg0, int arg1) {
@@ -275,7 +301,7 @@ public class MainActivity extends Activity {
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
 			nice.init();
-			sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
+			//sdp = nice.jcreateNiceAgentAndGetSdp(STUN_IP, STUN_PORT);
 
 			return true;
 		}
