@@ -1,4 +1,6 @@
 package com.via;
+import java.nio.ByteBuffer;
+
 import android.util.Log;
 
 import com.example.libnice.MainActivity;
@@ -11,30 +13,21 @@ public class libnice {
 	}
 	
 	private native int initNative();
-	private native int createAgentNative();
+	private native int createAgentNative(int useReliable);
 	private native int setStunAddressNative(String stun_ip,int stun_port);
 	private native int setControllingModeNative(int controllingMode);
 	private native int addStreamNative(String streamName, int numberOfComponent);
 	private native String getLocalSdpNative();
 	private native int setRemoteSdpNative(String jremoteSdp,long Size);
 	private native int sendMsgNative(String data,int compId);
-	private native int sendDataNative(byte[] data,int compId);
-	private native int createReceiveProcessNative(libnice.ReceiveCallback cb_obj,int sid,int cid);
-	
-	public void createReceiveProcess(libnice.ReceiveCallback cb_obj, int sid,int cid) {
-		createReceiveProcessNative(cb_obj,sid,cid);
-	}
-	
-	
-	//private native String createNiceAgentAndGetSdp(String stun_ip,int stun_port);
-	
-	
-	
-	
+	private native int sendDataNative(byte[] data,int len ,int compId);
+	private native int sendDataDirectNative(ByteBuffer data, int len, int compId);
+	private native int sendVideoDataDirectNative(ByteBuffer data,int len, int compId);
+
 	private native int mainLoopStart();
 	private native int mainTest();
 
-	private native void registerObserverNative(libnice.Observer obs,int compId);
+	private native void registerReceiveObserverNative(libnice.ReceiveObserver obs,int compId);
 	private native void registerStateObserverNative(libnice.StateObserver obs);
 	
 	
@@ -64,8 +57,8 @@ public class libnice {
 		return ret;
 	}
 	
-	public int createAgent() {
-		return createAgentNative();
+	public int createAgent(int useReliable) {
+		return createAgentNative(useReliable);
 	}
 	
 	public int setStunAddress(String stun_ip, int stun_port) {
@@ -84,18 +77,22 @@ public class libnice {
 		return getLocalSdpNative();
 	}
 	
-//	public String jcreateNiceAgentAndGetSdp(String stun_ip,int stun_port) {
-//		return createNiceAgentAndGetSdp(stun_ip,stun_port);
-//	}
-	
-	public void jsetRemoteSdp(String remoteSdp) {
+	public void setRemoteSdp(String remoteSdp) {
 		setRemoteSdpNative(remoteSdp,remoteSdp.length());
 	}
 	
-	public void jsendData(String msg, int compId) {
+	public void sendData(byte[] buf,int len ,int compId) {
 		//sendMsgNative(msg,compId);
-		byte[] a = msg.getBytes();
-		sendDataNative(a,compId);
+		//byte[] a = msg.getBytes();
+		sendDataNative(buf,len,compId);
+	}
+	
+	public void sendDataDirect(ByteBuffer buf, int len, int compId) {
+		sendDataDirectNative(buf,len,compId);
+	}
+	
+	public void sendVideoDataDirect(ByteBuffer buf, int len, int compId) {
+		sendVideoDataDirectNative(buf,len,compId);
 	}
 	
 	public void sendMsg(String msg, int compId) {
@@ -115,15 +112,15 @@ public class libnice {
 		act.AddTextToChat("From:"+new String(msg));
 	}
 	
-	public void registerObserver(libnice.Observer obs ,int compId) {
-		this.registerObserverNative(obs,compId);
+	public void registerReceiveObserver(libnice.ReceiveObserver obs ,int compId) {
+		this.registerReceiveObserverNative(obs,compId);
 	}
 	
 	public void registerStateObserver(libnice.StateObserver stateObserver) {
 		this.registerStateObserverNative(stateObserver);
 	}
 		
-	public interface Observer{
+	public interface ReceiveObserver{
 		void obCallback(byte[] msg);
 	}
 	

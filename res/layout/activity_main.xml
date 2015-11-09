@@ -47,10 +47,15 @@
      android:layout_height="wrap_content"
      android:orientation="horizontal">
  
- <ImageView
+<!--  <ImageView
      android:layout_width="300dp"
      android:layout_height="300dp"
-     android:id="@+id/QRCodeView"/>
+     android:id="@+id/QRCodeView"/> -->
+ 
+  <SurfaceView
+     android:layout_width="300dp"
+     android:layout_height="300dp"
+     android:id="@+id/QRCodeSurfaceView"/>
  
  <TextView
      android:layout_width="wrap_content"
