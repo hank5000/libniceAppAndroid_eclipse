@@ -25,6 +25,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.media.MediaPlayer;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
@@ -62,6 +63,7 @@ public class MainActivity extends Activity {
 	MainActivity instance = this;
 	ImageView qrView = null;
 	SurfaceView qrSfView = null;
+	SurfaceView videoSurfaceView = null;
 	
 	public static Bitmap encodeToQrCode(String text, int width, int height){
 	    QRCodeWriter writer = new QRCodeWriter();
@@ -129,7 +131,7 @@ public class MainActivity extends Activity {
 							// QR_CODE_MODE, 只判別 QRCode
 							// PRODUCT_MODE, UPC and EAN 碼
 							// ONE_D_MODE, 1 維條碼
-							intent.putExtra("SCAN_MODE", "SCAN_MODE");
+							intent.putExtra("QR_CODE_MODE", "QR_CODE_MODE");
 							// 呼叫ZXing Scanner，完成動作後回傳 1 給 onActivityResult 的 requestCode 參數
 							startActivityForResult(intent, 1);
 					}
@@ -161,7 +163,7 @@ public class MainActivity extends Activity {
 			
 		}
 	};
-	
+
     //ByteBuffer naluBuffer = ByteBuffer.allocate(1024 * 1024);
     ByteBuffer naluBuffer = ByteBuffer.allocateDirect(1024*1024);
 	
@@ -213,7 +215,6 @@ public class MainActivity extends Activity {
 							naluBuffer.position(sentSize);
 							naluBuffer.limit(divideSize+sentSize);
 							//ByteBuffer tmp = naluBuffer.slice();
-							LOGD("send "+naluBuffer.get(0)+naluBuffer.get(1)+naluBuffer.get(50));
 							nice.sendVideoDataDirect(naluBuffer.slice(),divideSize,1);
 //		                    byte[] tmp = new byte[divideSize];
 //		                    naluBuffer.get(tmp);
@@ -261,6 +262,9 @@ public class MainActivity extends Activity {
 		sendBtn = (Button) findViewById(R.id.sendBtn);
 		//qrView = (ImageView) findViewById(R.id.QRCodeView);
 		qrSfView = (SurfaceView) findViewById(R.id.QRCodeSurfaceView);
+		videoSurfaceView = (SurfaceView) findViewById(R.id.VideoSurfaceView);
+		
+		
 		
 		resultView = (TextView) findViewById(R.id.textView2);
 		initBtn.setOnClickListener(initListener);
@@ -348,7 +352,7 @@ public class MainActivity extends Activity {
 				Log.d("cbCandidateGatheringDone","Candidate Gathering Done Stream "+stream_id);
 			}
 	}
-	
+	MediaPlayer mMediaPlayer;
 	public class RecvObserver implements libnice.ReceiveObserver {
 			boolean bVideo = false;
 			int w = 0;
@@ -387,7 +391,7 @@ public class MainActivity extends Activity {
 						sps = tmps[4];
 						pps = tmps[5];
 						
-						
+//						
                         for (int jj = 0; jj < 10; jj++) {
                             try {
                                 mSocketId = new Random().nextInt();
@@ -422,10 +426,20 @@ public class MainActivity extends Activity {
                             LOGD("fail to get mSender mReceiver :" + e);
                             e.printStackTrace();
                         }
-
-                        // Video Thread need input SurfaceView->surface, mime, width, height, sps, pps , inputstream is.
-                        vt = new VideoThread(qrSfView.getHolder().getSurface(), mime, w, h, sps, pps, is);
+                        
+                        vt = new VideoThread(videoSurfaceView.getHolder().getSurface(),mime, w,h,sps,pps,is);
                         vt.start();
+						//videoSurfaceView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+//                		mMediaPlayer = new MediaPlayer();
+//                		try {
+//                			mMediaPlayer.setDataSource("/mnt/sata/720.mp4");
+//                			mMediaPlayer.setDisplay(videoSurfaceView.getHolder());
+//                			mMediaPlayer.prepare();
+//                			mMediaPlayer.start();
+//                		} catch (Exception e) {
+//                			e.printStackTrace();
+//                		}
+                        
 					}
 					LOGD(tmp);
 					AddTextToChat(tmp);
@@ -457,7 +471,7 @@ public class MainActivity extends Activity {
 	boolean bInit = false;
 	void initMediaExtractor() {
 		try {
-			me.setDataSource("/mnt/sata/720.mp4");
+			me.setDataSource("/sdcard/Download/OV_ACM.mkv");
 			MediaFormat mf = null;
 			String mime = null;
 			String videoMsg = "Video";

@@ -8,7 +8,7 @@ import android.view.Surface;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-
+import com.google.code.yanf4j.util.*;
 /**
  * Created by HankWu_Office on 2015/8/20.
  */
@@ -34,7 +34,7 @@ public class VideoThread extends Thread {
     int    mHeight;
     String mSPS;
     String mPPS;
-
+    int collectLen = 0;
     public byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
@@ -93,6 +93,9 @@ public class VideoThread extends Thread {
         int collectLength;
         int frameCount = 0;
         int j = 0;
+        
+        int firstNalu = 0;
+        int secondNalu = 0;
 
         if(vdt == null) {
             vdt = new VideoDisplayThread(decoder,outputBuffers,info);
@@ -116,50 +119,86 @@ public class VideoThread extends Thread {
                             break;
                         }
                     }
-                    collectLength = rawDataCollectBuffer.position();
-                    if(collectLength>0) {
-                        rawDataCollectBuffer.flip();
 
-                        int nextNALULength = (rawDataCollectBuffer.get(0) << 0) & 0x000000ff | (rawDataCollectBuffer.get(1) << 8) & 0x0000ff00 |
-                                (rawDataCollectBuffer.get(2) << 16) & 0x00ff0000 | (rawDataCollectBuffer.get(3) << 24) & 0xff000000;
+                    firstNalu = findNalu(0,rawDataCollectBuffer);
+                    
+                    Log.d(TAG,"firstNalue : "+ firstNalu +"rawDataCollectBuffer :" +rawDataCollectBuffer.get(0)+rawDataCollectBuffer.get(1)+rawDataCollectBuffer.get(2)+rawDataCollectBuffer.get(3));
 
-                        if ((nextNALULength + 4/*nalu length number use 4 byte*/) <= collectLength
-                                && (collectLength > 0) && (nextNALULength > 0)) {
+                    if(firstNalu!=-1) {
+                    	secondNalu = findNalu(firstNalu+3,rawDataCollectBuffer);
 
-                        	Log.d(TAG,"Get NALU length : " + nextNALULength );
+                    	if(secondNalu!=-1 && secondNalu > firstNalu ) {
+                    		rawDataCollectBuffer.flip();
+                    		rawDataCollectBuffer.position(firstNalu);
+                    		
+                        	Log.d(TAG,"FirstNALU :"+firstNalu+" ,SecondNALU :"+secondNalu+"size :"+ (secondNalu-firstNalu)+", rawDataCollectBuffer remaining:"+rawDataCollectBuffer.remaining());
 
-                            // remove NALU length number : 4 byte
-                            rawDataCollectBuffer.get();
-                            rawDataCollectBuffer.get();
-                            rawDataCollectBuffer.get();
-                            rawDataCollectBuffer.get();
-
-                            // get full NALU raw data : nextNALULength byte
-                            rawDataCollectBuffer.get(dst, 0, nextNALULength);
-                            rawDataCollectBuffer.compact();
-
-                            // put NALU raw data into inputBuffers[index]
-                            ByteBuffer buffer = inputBuffers[inIndex];
-                            buffer.clear();
-                            buffer.put(dst, 0, nextNALULength);
-
-                            // decode a NALU
-                            decoder.queueInputBuffer(inIndex, 0, nextNALULength, 0, 0);
-
-                            //                            // just a frame count
-                            //                            frameCount++;
-                            //                            Log.d(TAG,"Receive Frame Count : "+frameCount);
-                            break;
-                        } else {
-                            rawDataCollectBuffer.compact();
-                            try {
-                                sleep(10);
-                            } catch (InterruptedException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
-                        }
+                    		rawDataCollectBuffer.get(dst, 0, secondNalu-firstNalu);
+                    		rawDataCollectBuffer.compact();
+                    		
+                    		int nalu_unit_type = (dst[4] & 0x1F);
+                    		Log.d(TAG,"NALU TYPE :" +nalu_unit_type);
+                    		if(nalu_unit_type!=8 && nalu_unit_type!=7 && nalu_unit_type!=6)
+                    		{
+	                    		ByteBuffer buffer = inputBuffers[inIndex];
+	                    		buffer.clear();
+	                    		buffer.put(dst, 0, secondNalu-firstNalu);
+	                    		decoder.queueInputBuffer(inIndex, 0, secondNalu-firstNalu, 0, 0);
+	                    		break;
+                    		}
+                    	}
+                    } else {
+                    	Log.d(TAG,"Something wrong");
                     }
+                    
+                    
+                    
+//                    collectLength = rawDataCollectBuffer.position();
+//                    if(collectLength>0) {
+//                        rawDataCollectBuffer.flip();
+//
+//                        int nextNALULength = (rawDataCollectBuffer.get(0) << 0) & 0x000000ff | (rawDataCollectBuffer.get(1) << 8) & 0x0000ff00 |
+//                                (rawDataCollectBuffer.get(2) << 16) & 0x00ff0000 | (rawDataCollectBuffer.get(3) << 24) & 0xff000000;
+//                        
+//                        Log.d(TAG,"Need NALU Length : "+nextNALULength + "Now Collect Length:"+collectLength);
+//                        
+//                        if ((nextNALULength + 4/*nalu length number use 4 byte*/) <= collectLength
+//                                && (collectLength > 0) && (nextNALULength > 0)) {
+//
+//                        	Log.d(TAG,"Get NALU length : " + nextNALULength );
+//
+//                            // remove NALU length number : 4 byte
+//                            rawDataCollectBuffer.get();
+//                            rawDataCollectBuffer.get();
+//                            rawDataCollectBuffer.get();
+//                            rawDataCollectBuffer.get();
+//
+//                            // get full NALU raw data : nextNALULength byte
+//                            rawDataCollectBuffer.get(dst, 0, nextNALULength);
+//                            rawDataCollectBuffer.compact();
+//
+//                            // put NALU raw data into inputBuffers[index]
+//                            ByteBuffer buffer = inputBuffers[inIndex];
+//                            buffer.clear();
+//                            buffer.put(dst, 0, nextNALULength);
+//
+//                            // decode a NALU
+//                            decoder.queueInputBuffer(inIndex, 0, nextNALULength, 0, 0);
+//
+//                            //                            // just a frame count
+//                            //                            frameCount++;
+//                            //                            Log.d(TAG,"Receive Frame Count : "+frameCount);
+//                            break;
+//                        } else {
+//                            rawDataCollectBuffer.compact();
+//                            try {
+//                                sleep(10);
+//                            } catch (InterruptedException e) {
+//                                // TODO Auto-generated catch block
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    }
                 }
             }
         }
@@ -191,7 +230,7 @@ public class VideoThread extends Thread {
 
         public void run() {
             while (bStart && decoder!=null ) {
-                Log.d("libnice", "coming");
+                //Log.d("libnice", "coming");
                 int outIndex = this.decoder.dequeueOutputBuffer(this.info, 10000);
                 switch (outIndex) {
                     case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
@@ -202,24 +241,37 @@ public class VideoThread extends Thread {
                         Log.d("libnice", "New format " + decoder.getOutputFormat());
                         break;
                     case MediaCodec.INFO_TRY_AGAIN_LATER:
-                        Log.d("libnice", "INFO_TRY_AGAIN_LATER");
+                        //Log.d("libnice", "INFO_TRY_AGAIN_LATER");
                         //Log.d("DecodeActivity", "dequeueOutputBuffer timed out!");
                         break;
                     default:
                         // ByteBuffer buffer = outputBuffers[outIndex];
                         // Log.v("DecodeActivity", "We can't use this buffer but render it due to the API limit, " + buffer);
                         try {
-                            sleep(10);
+                            sleep(30);
                         } catch (InterruptedException e) {
                             // TODO Auto-generated catch block
                             e.printStackTrace();
                         }
-                        Log.d("libnice", "coming2");
+                        //Log.d("libnice", "coming2");
                         this.decoder.releaseOutputBuffer(outIndex, true);
                         break;
                 }
             }
         }
+    }
+    
+    int findNalu(int offset,ByteBuffer bb) {
+    	int limit = bb.limit();
+    	int ret = -1;
+
+    	for(int i=offset;i<(remaining-4);i++) {
+	    	if ((bb.get(i)==0 && bb.get(i+1) == 0 && bb.get(i+2) == 0 && bb.get(i+3) == 1 )) {
+	    		Log.d(TAG,"remaing : "+remaining);
+	    		return i;
+	    	}
+    	}
+    	return ret;
     }
 
 }
