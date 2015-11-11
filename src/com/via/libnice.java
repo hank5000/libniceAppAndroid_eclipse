@@ -12,31 +12,34 @@ public class libnice {
 		System.loadLibrary("nice4android");
 	}
 	
+	final static int MAX_STREAM = 20;
+	final static int MAX_COMPONENT = 20;
+	
+	String[] mStreamName = new String[MAX_STREAM];
+	String[][] mComponentName = new String[MAX_STREAM][MAX_COMPONENT];
+	
 	private native int initNative();
 	private native int createAgentNative(int useReliable);
 	private native int setStunAddressNative(String stun_ip,int stun_port);
 	private native int setControllingModeNative(int controllingMode);
-	private native int addStreamNative(String streamName, int numberOfComponent);
-	private native String getLocalSdpNative();
+	private native int /*stream id*/ addStreamNative(String streamName, int numberOfComponent); // return stream id which is signed by libnice
+	private native String /*sdp which is encoded by base 64*/ getLocalSdpNative(int stream_id);
 	private native int setRemoteSdpNative(String jremoteSdp,long Size);
-	private native int sendMsgNative(String data,int compId);
-	private native int sendDataNative(byte[] data,int len ,int compId);
-	private native int sendDataDirectNative(ByteBuffer data, int len, int compId);
-	private native int sendVideoDataDirectNative(ByteBuffer data,int len, int compId);
+	private native int sendMsgNative(String data,int streamId,int compId);
+	private native int sendDataNative(byte[] data,int len ,int streamId,int compId);
+	private native int sendDataDirectNative(ByteBuffer data, int len ,int streamId,int compId);
 
 	private native int mainLoopStart();
-	private native int mainTest();
-
-	private native void registerReceiveObserverNative(libnice.ReceiveObserver obs,int compId);
+	// register callback function for stream[streamId],component[compId]
+	private native void registerReceiveCallbackNative(libnice.ReceiveCallback recv_cb_obj,int streamId,int compId);
 	private native void registerStateObserverNative(libnice.StateObserver obs);
 	
-	
 	static MainActivity act;
-	
+
 	public void setAct(MainActivity a) {
 		act = a;
 	}
-	
+
 	private static int a = 0;
 	Thread mainLoopThread = new Thread(new Runnable(){
 		@Override
@@ -45,58 +48,49 @@ public class libnice {
 			mainLoopStart();
 		}
 	});
-	
-	public int main_test() {
-		return mainTest();
-	}
-	
+
 	public int init() {
 		int ret = initNative();
 		if(ret==1)
 			mainLoopThread.start();
 		return ret;
 	}
-	
+
 	public int createAgent(int useReliable) {
 		return createAgentNative(useReliable);
 	}
-	
+
 	public int setStunAddress(String stun_ip, int stun_port) {
 		return setStunAddressNative( stun_ip, stun_port);
 	}
-	
+
 	public int setControllingMode(int controllingMode) {
 		return setControllingModeNative(controllingMode);
 	}
-	
+
 	public int addStream(String streamName, int numberOfComponent) {
 		return addStreamNative(streamName, numberOfComponent);
 	}
-	
-	public String getLocalSdp() {
-		return getLocalSdpNative();
+
+	public String getLocalSdp(int streamId) {
+		return getLocalSdpNative(streamId);
 	}
-	
+
 	public void setRemoteSdp(String remoteSdp) {
 		setRemoteSdpNative(remoteSdp,remoteSdp.length());
 	}
-	
-	public void sendData(byte[] buf,int len ,int compId) {
-		//sendMsgNative(msg,compId);
-		//byte[] a = msg.getBytes();
-		sendDataNative(buf,len,compId);
+
+	public void sendData(byte[] buf,int len,int streamId ,int compId) {
+		sendDataNative(buf,len,streamId,compId);
 	}
 	
-	public void sendDataDirect(ByteBuffer buf, int len, int compId) {
-		sendDataDirectNative(buf,len,compId);
+	public void sendDataDirect(ByteBuffer buf, int len,int streamId, int compId) {
+		sendDataDirectNative(buf,len,streamId,compId);
 	}
 	
-	public void sendVideoDataDirect(ByteBuffer buf, int len, int compId) {
-		sendVideoDataDirectNative(buf,len,compId);
-	}
 	
-	public void sendMsg(String msg, int compId) {
-		sendMsgNative(msg, compId);
+	public void sendMsg(String msg, int streamId,int compId) {
+		sendMsgNative(msg,streamId,compId);
 	}
 
 	public void jniCallBackMsg(String msg) {
@@ -112,8 +106,8 @@ public class libnice {
 		act.AddTextToChat("From:"+new String(msg));
 	}
 	
-	public void registerReceiveObserver(libnice.ReceiveObserver obs ,int compId) {
-		this.registerReceiveObserverNative(obs,compId);
+	public void registerReceiveCallback(libnice.ReceiveCallback obs,int streamId ,int compId) {
+		this.registerReceiveCallbackNative(obs,streamId,compId);
 	}
 	
 	public void registerStateObserver(libnice.StateObserver stateObserver) {
@@ -133,6 +127,6 @@ public class libnice {
 	}
 	
 	public interface ReceiveCallback {
-		void onMessage(byte[] buf,int use_len);
+		void onMessage(byte[] buf);
 	}
 }

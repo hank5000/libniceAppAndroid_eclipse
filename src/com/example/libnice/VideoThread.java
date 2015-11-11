@@ -8,7 +8,6 @@ import android.view.Surface;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import com.google.code.yanf4j.util.*;
 /**
  * Created by HankWu_Office on 2015/8/20.
  */
@@ -90,10 +89,6 @@ public class VideoThread extends Thread {
 
         /// Decode -START- ///
         int readSize = 0;
-        int collectLength;
-        int frameCount = 0;
-        int j = 0;
-        
         int firstNalu = 0;
         int secondNalu = 0;
 
@@ -122,7 +117,7 @@ public class VideoThread extends Thread {
 
                     firstNalu = findNalu(0,rawDataCollectBuffer);
                     
-                    Log.d(TAG,"firstNalue : "+ firstNalu +"rawDataCollectBuffer :" +rawDataCollectBuffer.get(0)+rawDataCollectBuffer.get(1)+rawDataCollectBuffer.get(2)+rawDataCollectBuffer.get(3));
+                    //Log.d(TAG,"firstNalue : "+ firstNalu +"rawDataCollectBuffer :" +rawDataCollectBuffer.get(0)+rawDataCollectBuffer.get(1)+rawDataCollectBuffer.get(2)+rawDataCollectBuffer.get(3));
 
                     if(firstNalu!=-1) {
                     	secondNalu = findNalu(firstNalu+3,rawDataCollectBuffer);
@@ -131,14 +126,14 @@ public class VideoThread extends Thread {
                     		rawDataCollectBuffer.flip();
                     		rawDataCollectBuffer.position(firstNalu);
                     		
-                        	Log.d(TAG,"FirstNALU :"+firstNalu+" ,SecondNALU :"+secondNalu+"size :"+ (secondNalu-firstNalu)+", rawDataCollectBuffer remaining:"+rawDataCollectBuffer.remaining());
+                        	//Log.d(TAG,"FirstNALU :"+firstNalu+" ,SecondNALU :"+secondNalu+"size :"+ (secondNalu-firstNalu)+", rawDataCollectBuffer remaining:"+rawDataCollectBuffer.remaining());
 
                     		rawDataCollectBuffer.get(dst, 0, secondNalu-firstNalu);
                     		rawDataCollectBuffer.compact();
                     		
                     		int nalu_unit_type = (dst[4] & 0x1F);
-                    		Log.d(TAG,"NALU TYPE :" +nalu_unit_type);
-                    		if(nalu_unit_type!=8 && nalu_unit_type!=7 && nalu_unit_type!=6)
+                    		//Log.d(TAG,"NALU TYPE :" +nalu_unit_type);
+                    		//if(nalu_unit_type!=8 && nalu_unit_type!=7 && nalu_unit_type!=6)
                     		{
 	                    		ByteBuffer buffer = inputBuffers[inIndex];
 	                    		buffer.clear();
@@ -150,55 +145,7 @@ public class VideoThread extends Thread {
                     } else {
                     	Log.d(TAG,"Something wrong");
                     }
-                    
-                    
-                    
-//                    collectLength = rawDataCollectBuffer.position();
-//                    if(collectLength>0) {
-//                        rawDataCollectBuffer.flip();
-//
-//                        int nextNALULength = (rawDataCollectBuffer.get(0) << 0) & 0x000000ff | (rawDataCollectBuffer.get(1) << 8) & 0x0000ff00 |
-//                                (rawDataCollectBuffer.get(2) << 16) & 0x00ff0000 | (rawDataCollectBuffer.get(3) << 24) & 0xff000000;
-//                        
-//                        Log.d(TAG,"Need NALU Length : "+nextNALULength + "Now Collect Length:"+collectLength);
-//                        
-//                        if ((nextNALULength + 4/*nalu length number use 4 byte*/) <= collectLength
-//                                && (collectLength > 0) && (nextNALULength > 0)) {
-//
-//                        	Log.d(TAG,"Get NALU length : " + nextNALULength );
-//
-//                            // remove NALU length number : 4 byte
-//                            rawDataCollectBuffer.get();
-//                            rawDataCollectBuffer.get();
-//                            rawDataCollectBuffer.get();
-//                            rawDataCollectBuffer.get();
-//
-//                            // get full NALU raw data : nextNALULength byte
-//                            rawDataCollectBuffer.get(dst, 0, nextNALULength);
-//                            rawDataCollectBuffer.compact();
-//
-//                            // put NALU raw data into inputBuffers[index]
-//                            ByteBuffer buffer = inputBuffers[inIndex];
-//                            buffer.clear();
-//                            buffer.put(dst, 0, nextNALULength);
-//
-//                            // decode a NALU
-//                            decoder.queueInputBuffer(inIndex, 0, nextNALULength, 0, 0);
-//
-//                            //                            // just a frame count
-//                            //                            frameCount++;
-//                            //                            Log.d(TAG,"Receive Frame Count : "+frameCount);
-//                            break;
-//                        } else {
-//                            rawDataCollectBuffer.compact();
-//                            try {
-//                                sleep(10);
-//                            } catch (InterruptedException e) {
-//                                // TODO Auto-generated catch block
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                    }
+
                 }
             }
         }
@@ -264,10 +211,14 @@ public class VideoThread extends Thread {
     int findNalu(int offset,ByteBuffer bb) {
     	int limit = bb.limit();
     	int ret = -1;
-
-    	for(int i=offset;i<(remaining-4);i++) {
+    	int currentPos = bb.position();
+    	
+    	if(offset > currentPos) {
+    		return ret;
+    	}
+    	
+    	for(int i=offset;i<(currentPos-4);i++) {
 	    	if ((bb.get(i)==0 && bb.get(i+1) == 0 && bb.get(i+2) == 0 && bb.get(i+3) == 1 )) {
-	    		Log.d(TAG,"remaing : "+remaining);
 	    		return i;
 	    	}
     	}
