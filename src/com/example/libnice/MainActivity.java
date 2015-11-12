@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -66,23 +67,70 @@ public class MainActivity extends Activity {
 	SurfaceView qrSfView = null;
 	SurfaceView videoSurfaceView = null;
 	int stream_id = 0;
+	
+	boolean bSourceSide = false;
+	Handler handle = new Handler();
+	String remoteSdp = "";
 
-	public static Bitmap encodeToQrCode(String text, int width, int height){
-	    QRCodeWriter writer = new QRCodeWriter();
-	    BitMatrix matrix = null;
-	    try {
-	        matrix = writer.encode(text, BarcodeFormat.QR_CODE, width, height);
-	    } catch (WriterException ex) {
-	        ex.printStackTrace();
-	    }
-	    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-	    for (int x = 0; x < width; x++){
-	        for (int y = 0; y < height; y++){
-	            bmp.setPixel(x, y, matrix.get(x,y) ? Color.BLACK : Color.WHITE);
-	        }
-	    }
-	    return bmp;
-	}
+	Runnable serverTask = new Runnable(){
+		@Override
+		public void run() {
+			try {
+				String method = "Server";
+				String postParameters = "register="+URLEncoder.encode("FALSE", "UTF-8")
+						       +"&username="+URLEncoder.encode("HankWu","UTF-8");
+				String remoteSDP = QueryToServer.excutePost(method, postParameters);
+				if(remoteSDP.equals("NOBODY")) {
+					showToast("No Remote SDP");
+				} else {
+					showToast("Get remote SDP "+remoteSDP);
+					remoteSdp = remoteSDP;
+				}
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	};
+	
+	Runnable clientTask = new Runnable(){
+		@Override
+		public void run() {
+			try {
+				String method = "Client";
+				String findusername = "HankWu";
+				String postParameters = "findusername="+URLEncoder.encode(findusername,"UTF-8") + "&SDP="+URLEncoder.encode(sdp,"UTF-8");
+				String remoteSDP = QueryToServer.excutePost(method, postParameters);
+				if(remoteSDP.equals("OFFLINE")) {
+					showToast(findusername+"is OFFLINE");
+				} else {
+					showToast("Get remote SDP "+remoteSDP);
+					remoteSdp = remoteSDP;
+				}
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	};
+
+
+//	public static Bitmap encodeToQrCode(String text, int width, int height){
+//	    QRCodeWriter writer = new QRCodeWriter();
+//	    BitMatrix matrix = null;
+//	    try {
+//	        matrix = writer.encode(text, BarcodeFormat.QR_CODE, width, height);
+//	    } catch (WriterException ex) {
+//	        ex.printStackTrace();
+//	    }
+//	    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+//	    for (int x = 0; x < width; x++){
+//	        for (int y = 0; y < height; y++){
+//	            bmp.setPixel(x, y, matrix.get(x,y) ? Color.BLACK : Color.WHITE);
+//	        }
+//	    }
+//	    return bmp;
+//	}
 	
 	OnClickListener initListener = new OnClickListener(){
 
@@ -108,39 +156,63 @@ public class MainActivity extends Activity {
 			nice.registerStateObserver(new StateObserver());
 			// TODO: add stream id, each stream has self SDP. 
 			sdp = nice.getLocalSdp(stream_id);
-
-
-			
-			// get sdp qrcode bitmap and show on surfaceView
-			instance.runOnUiThread(new Runnable() {
+			Thread a =new Thread(new Runnable(){
 				@Override
 				public void run() {
-					Bitmap bmp = encodeToQrCode(sdp,600,600);
-					qrSfView.setBackground(new BitmapDrawable(getResources(),bmp));
+					if(bSourceSide) {
+						// Send SDP to Server
+						String method = "Server";
+						String postParameters;
+						try {
+							postParameters = "register="+URLEncoder.encode("TRUE", "UTF-8")
+									       +"&username="+URLEncoder.encode("HankWu","UTF-8")
+									       +"&SDP="+URLEncoder.encode(sdp,"UTF-8");
+							QueryToServer.excutePost(method, postParameters);
+						} catch (UnsupportedEncodingException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 				}
 			});
+			a.start();
+			
+			
+			// get sdp qrcode bitmap and show on surfaceView
+//			instance.runOnUiThread(new Runnable() {
+//				@Override
+//				public void run() {
+//					Bitmap bmp = encodeToQrCode(sdp,600,600);
+//					qrSfView.setBackground(new BitmapDrawable(getResources(),bmp));
+//				}
+//			});
 		}
 	};
 	
 	OnClickListener getListener = new OnClickListener(){
 		@Override
 		public void onClick(View v) {
-
-					Intent intent = new Intent("com.google.zxing.client.android.SCAN");
-					if(getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).size()==0)
-					{
-						LOGD("please install ZXing QRCode");
-					}
-					else
-					{
-							// SCAN_MODE, 可判別所有支援的條碼
-							// QR_CODE_MODE, 只判別 QRCode
-							// PRODUCT_MODE, UPC and EAN 碼
-							// ONE_D_MODE, 1 維條碼
-							intent.putExtra("QR_CODE_MODE", "QR_CODE_MODE");
-							// 呼叫ZXing Scanner，完成動作後回傳 1 給 onActivityResult 的 requestCode 參數
-							startActivityForResult(intent, 1);
-					}
+//
+//					Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+//					if(getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).size()==0)
+//					{
+//						LOGD("please install ZXing QRCode");
+//					}
+//					else
+//					{
+//							// SCAN_MODE, 可判別所有支援的條碼
+//							// QR_CODE_MODE, 只判別 QRCode
+//							// PRODUCT_MODE, UPC and EAN 碼
+//							// ONE_D_MODE, 1 維條碼
+//							intent.putExtra("QR_CODE_MODE", "QR_CODE_MODE");
+//							// 呼叫ZXing Scanner，完成動作後回傳 1 給 onActivityResult 的 requestCode 參數
+//							startActivityForResult(intent, 1);
+//					}
+			if(bSourceSide) {
+				(new Thread(serverTask)).start();
+			} else {
+				(new Thread(clientTask)).start();
+			}
 		}
 	};
 	
@@ -155,7 +227,7 @@ public class MainActivity extends Activity {
 			   editDialog.setPositiveButton("SEND", new DialogInterface.OnClickListener() {
 			    // do something when the button is clicked
 			    public void onClick(DialogInterface arg0, int arg1) {
-					nice.setRemoteSdp(remoteSdp);	
+					nice.setRemoteSdp(remoteSdp);
 
 			    }
 			    });
@@ -332,7 +404,6 @@ public class MainActivity extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 	
-	String remoteSdp = "";
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
 		if(requestCode == 1) {
 			if(resultCode==RESULT_OK) {
@@ -518,6 +589,15 @@ public class MainActivity extends Activity {
 		    }
 		    return new String(hexChars);
 		  }
+	  
+	  public void showToast(final String tmp) {
+		  runOnUiThread(new Runnable(){
+			@Override
+			public void run() {
+				Toast.makeText(instance, tmp, Toast.LENGTH_LONG).show();
+			}
+		  });
+	  }
 	
 
 }
