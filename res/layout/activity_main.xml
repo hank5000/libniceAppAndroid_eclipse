@@ -37,45 +37,41 @@
      android:id="@+id/sendBtn"
      />
  </LinearLayout>
+
+
  
-  <LinearLayout
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:orientation="vertical">
-  <LinearLayout
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:orientation="horizontal">
- 
-<!--  <ImageView
-     android:layout_width="300dp"
-     android:layout_height="300dp"
-     android:id="@+id/QRCodeView"/> -->
- 
+  <RelativeLayout
+      android:layout_width="fill_parent"
+      android:layout_height="fill_parent"
+      android:id="@+id/relative" >
+
+      <SurfaceView
+          android:id="@+id/surfaceView1"
+          android:layout_width="300dp"
+          android:layout_height="300dp" />
+
   <SurfaceView
-     android:layout_width="600dp"
-     android:layout_height="600dp"
-     android:id="@+id/QRCodeSurfaceView"/>
-  
-    <SurfaceView
+      android:id="@+id/surfaceView2"
+      android:layout_width="300dp"
+      android:layout_height="300dp"
+      android:layout_toRightOf="@id/surfaceView1" />
+ 
+ <SurfaceView
+     android:id="@+id/surfaceView3"
      android:layout_width="300dp"
      android:layout_height="300dp"
-     android:id="@+id/VideoSurfaceView"/>
- 
-    	 <TextView
-	     android:layout_width="wrap_content"
-	     android:layout_height="300dp"
-	     android:id="@+id/textView2"/>
-	 
- 
- </LinearLayout>>
- 
- <TextView
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:id="@+id/textView1"/>
- 
- </LinearLayout>>
+     android:layout_below="@id/surfaceView1" />
+
+ <SurfaceView
+     android:id="@+id/surfaceView4"
+     android:layout_width="300dp"
+     android:layout_height="300dp"
+     android:layout_below="@id/surfaceView2"
+     android:layout_toRightOf="@id/surfaceView3" />
+
+  </RelativeLayout>
+
+
     
 </LinearLayout>
 

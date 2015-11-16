@@ -66,6 +66,11 @@ public class MainActivity extends Activity {
 	ImageView qrView = null;
 	SurfaceView qrSfView = null;
 	SurfaceView videoSurfaceView = null;
+	SurfaceView videoSurfaceView2 = null;
+	SurfaceView videoSurfaceView3 = null;
+	SurfaceView videoSurfaceView4 = null;
+	int MESSAGE_CHANNEL = 5;
+
 	int stream_id = 0;
 	
 	boolean bSourceSide = false;
@@ -143,14 +148,22 @@ public class MainActivity extends Activity {
 			int controllMode = 0;// 0 => controlling, 1=>controlled
 			nice.setControllingMode(controllMode);
 			String streamName = "HankWu";
-			int numberOfComponent = 2;
+			int numberOfComponent = 4;
 			// TODO: return stream id
 			stream_id = nice.addStream(streamName,numberOfComponent);
 			// register a receive Observer to get byte array from jni side to java side.
 			int forComponentIndex = 1;
-			nice.registerReceiveCallback(new RecvCallback(), stream_id,forComponentIndex);
-//			forComponentIndex = 2;
-//			nice.registerReceiveCallback(new RecvCallback(), stream_id,forComponentIndex);
+			nice.registerReceiveCallback(new VideoRecvCallback(videoSurfaceView), stream_id,forComponentIndex);
+			forComponentIndex = 2;
+			nice.registerReceiveCallback(new VideoRecvCallback(videoSurfaceView2), stream_id,forComponentIndex);
+			forComponentIndex = 3;
+			nice.registerReceiveCallback(new VideoRecvCallback(videoSurfaceView3), stream_id,forComponentIndex);
+			forComponentIndex = 4;
+			nice.registerReceiveCallback(new VideoRecvCallback(videoSurfaceView4), stream_id,forComponentIndex);
+
+			forComponentIndex = 5;
+			CommunicationPart cp = new CommunicationPart(instance, nice,stream_id,forComponentIndex);
+			nice.registerReceiveCallback(cp, stream_id, forComponentIndex);
 			
 			// register a state Observer to catch stream/component state change
 			nice.registerStateObserver(new StateObserver());
@@ -302,6 +315,11 @@ public class MainActivity extends Activity {
 										// Reliable mode : if send buffer size bigger than MTU, the destination side will received data partition which is divided by 1284.
 										// Normal mode   : if send buffer size bigger than MTU, the destination side will received all data in once receive.
 										nice.sendDataDirect(naluBuffer.slice(),divideSize,stream_id,1);
+										nice.sendDataDirect(naluBuffer.slice(),divideSize,stream_id,2);
+
+										nice.sendDataDirect(naluBuffer.slice(),divideSize,stream_id,3);
+										nice.sendDataDirect(naluBuffer.slice(),divideSize,stream_id,4);
+
 										
 										naluBuffer.limit(naluBuffer.capacity());
 				
@@ -351,10 +369,15 @@ public class MainActivity extends Activity {
 		setBtn = (Button) findViewById(R.id.setBtn);
 		sendBtn = (Button) findViewById(R.id.sendBtn);
 
-		qrSfView = (SurfaceView) findViewById(R.id.QRCodeSurfaceView);
-		videoSurfaceView = (SurfaceView) findViewById(R.id.VideoSurfaceView);
+//		qrSfView = (SurfaceView) findViewById(R.id.QRCodeSurfaceView);
+		videoSurfaceView = (SurfaceView) findViewById(R.id.surfaceView1);
+		videoSurfaceView2 = (SurfaceView) findViewById(R.id.surfaceView2);
+		videoSurfaceView3 = (SurfaceView) findViewById(R.id.surfaceView3);
+		videoSurfaceView4 = (SurfaceView) findViewById(R.id.surfaceView4);
 
-		resultView = (TextView) findViewById(R.id.textView2);
+		
+
+//		resultView = (TextView) findViewById(R.id.textView2);
 		initBtn.setOnClickListener(initListener);
 		getBtn.setOnClickListener(getListener);
 		setBtn.setOnClickListener(setListener);
@@ -368,7 +391,7 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void run() {
-				resultView.setText(msg +"\n"+ resultView.getText().toString());
+				//resultView.setText(msg +"\n"+ resultView.getText().toString());
 			}
 			
 		});
@@ -408,9 +431,9 @@ public class MainActivity extends Activity {
 		if(requestCode == 1) {
 			if(resultCode==RESULT_OK) {
 				final String contents = intent.getStringExtra("SCAN_RESULT");
-				TextView tv = (TextView) findViewById(R.id.textView1);
-				tv.setText(contents);
-				remoteSdp = contents;
+				//TextView tv = (TextView) findViewById(R.id.textView1);
+				//tv.setText(contents);
+				//remoteSdp = contents;
 			}
 			
 			
@@ -440,94 +463,6 @@ public class MainActivity extends Activity {
 			}
 	}
 	MediaPlayer mMediaPlayer;
-	public class RecvCallback implements libnice.ReceiveCallback {
-			boolean bVideo = false;
-			int w = 0;
-			int h = 0;
-			String sps = null;
-			String pps = null;
-			String mime= null;
-			
-		    LocalServerSocket mLss = null;
-		    LocalSocket mReceiver = null;
-		    LocalSocket mSender   = null;
-		    int         mSocketId;
-		    final String LOCAL_ADDR = "DataChannelToVideoDecodeThread-";
-		    public OutputStream os = null;
-		    public WritableByteChannel writableByteChannel;
-		    public InputStream is = null;
-		    VideoThread vt = null;
-			
-
-		    @Override
-			public void onMessage(byte[] msg) {
-		    	
-				if(!bVideo) {
-					LOGD("not video");
-					String tmp = new String(msg);
-					if(tmp.startsWith("Video")) {
-						bVideo = true;
-						String[] tmps = tmp.split(":");
-						mime = tmps[1];
-						w = Integer.valueOf(tmps[2]);
-						h = Integer.valueOf(tmps[3]);
-						sps = tmps[4];
-						pps = tmps[5];
-//						
-                        for (int jj = 0; jj < 10; jj++) {
-                            try {
-                                mSocketId = new Random().nextInt();
-                                mLss = new LocalServerSocket(LOCAL_ADDR + mSocketId);
-                                break;
-                            } catch (IOException e) {
-                                LOGD("fail to create localserversocket :" + e);
-                            }
-                        }
-                        //    DECODE FLOW
-                        //
-                        //    Intermediary:                             Localsocket       MediaCodec inputBuffer     MediaCodec outputBuffer
-                        //        Flow    : Data Channel =======> Sender ========> Receiver ==================> Decoder =================> Display to surface/ Play by Audio Track
-                        //       Thread   : |<---Data Channel thread--->|          |<--------- Decode Thread --------->|                 |<--------- Display/play Thread -------->|
-                        //
-                        mReceiver = new LocalSocket();
-                        try {
-                            mReceiver.connect(new LocalSocketAddress(LOCAL_ADDR + mSocketId));
-                            mReceiver.setReceiveBufferSize(100000);
-                            mReceiver.setSoTimeout(2000);
-                            mSender = mLss.accept();
-                            mSender.setSendBufferSize(100000);
-                        } catch (IOException e) {
-                            LOGD("fail to create mSender mReceiver :" + e);
-                            e.printStackTrace();
-                        }
-                        try {
-                            os = mSender.getOutputStream();
-                            writableByteChannel = Channels.newChannel(os);
-                            is = mReceiver.getInputStream();
-                        } catch (IOException e) {
-                            LOGD("fail to get mSender mReceiver :" + e);
-                            e.printStackTrace();
-                        }
-                        
-                        vt = new VideoThread(videoSurfaceView.getHolder().getSurface(),mime, w,h,sps,pps,is);
-                        vt.start();
-					}
-					LOGD(tmp);
-					AddTextToChat(tmp);
-				} else {
-					//LOGD("video");
-
-					try {
-						writableByteChannel.write(ByteBuffer.wrap(msg));
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						LOGD("os write fail"+e);
-					}
-				}
-			}
-
-	}
-
 	
 	MediaExtractor me = new MediaExtractor();
 	boolean bInit = false;
@@ -568,7 +503,9 @@ public class MainActivity extends Activity {
 			        videoMsg = videoMsg + ":" + mime + ":" + w + ":" + h + ":" + s_sps + ":" + s_pps + ":";
 			        
 			        nice.sendMsg(videoMsg, stream_id,1);
-					
+					nice.sendMsg(videoMsg, stream_id, 2);
+			        nice.sendMsg(videoMsg, stream_id,3);
+					nice.sendMsg(videoMsg, stream_id, 4);
 					break;
 				}
 			}
@@ -594,7 +531,7 @@ public class MainActivity extends Activity {
 		  runOnUiThread(new Runnable(){
 			@Override
 			public void run() {
-				Toast.makeText(instance, tmp, Toast.LENGTH_LONG).show();
+				Toast.makeText(instance, tmp, Toast.LENGTH_SHORT).show();
 			}
 		  });
 	  }
