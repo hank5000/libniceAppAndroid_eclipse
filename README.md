@@ -13,7 +13,7 @@ Step3. Using Eclipse to open this project.
 
 
 
-How to use this App:
+How to use this App (version before 11/13)
 
 1. You should have two android phones or devices (cpu : arm)
 2. Install ZXing QRcode app to android phones/devices
@@ -24,5 +24,6 @@ How to use this App:
 5. Click setRemoteSdp button , and click "SEND", both on two devices at the same time better.
 6. Then your can click SendToRemote button to send string to other devies lo.
 (Just like a chat room)
+
 
 
