@@ -28,7 +28,23 @@ public class libnice {
 	private native int sendMsgNative(String data,int streamId,int compId);
 	private native int sendDataNative(byte[] data,int len ,int streamId,int compId);
 	private native int sendDataDirectNative(ByteBuffer data, int len ,int streamId,int compId);
+	private native int setDirectBufferIndexNative(ByteBuffer data, int index);
+	private native int sendDataDirectByIndexNative(ByteBuffer data, int len ,int index,int streamId,int compId);
+	private native int restartStreamNative(int streamId);
+	
+	public int restartStream(int streamId) {
+		return restartStreamNative(streamId);
+	}
 
+	public int sendDataDirectByIndex(ByteBuffer data,int len,int index,int streamId,int CompId) {
+		return sendDataDirectByIndexNative(data,len,index,streamId,CompId);
+	}
+	
+	public int setDirectBufferIndex(ByteBuffer data,int index) {
+		return setDirectBufferIndexNative(data,index);
+	}
+	
+	
 	private native int mainLoopStart();
 	// register callback function for stream[streamId],component[compId]
 	private native void registerReceiveCallbackNative(libnice.ReceiveCallback recv_cb_obj,int streamId,int compId);
@@ -117,6 +133,8 @@ public class libnice {
 	public interface ReceiveObserver{
 		void obCallback(byte[] msg);
 	}
+	
+	
 	
 	public interface StateObserver {
 		String[] STATE_TABLE = {"disconnected", "gathering", "connecting",
